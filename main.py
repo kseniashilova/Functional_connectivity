@@ -1,7 +1,10 @@
+from matplotlib import pyplot as plt
+
+import new_main
 from network import ER_network, WS_network
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QDoubleSpinBox, QSpinBox, QHBoxLayout, \
-    QLabel, QSlider, QPushButton, QCheckBox
+    QLabel, QSlider, QPushButton, QCheckBox, QDialog
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -26,6 +29,8 @@ class MyApp(QWidget):
         self.upperBound = None
         self.prob = None
         self.methods_list = None
+        self.distrib = None
+        self.whitenoise=False
 
 
         # Choose network type
@@ -89,7 +94,18 @@ class MyApp(QWidget):
 
         layout.addLayout(hbox_weights)
 
+        # Choose distrib weights
+        self.comboBoxDistribType = QComboBox(self)
+        self.comboBoxDistribType.addItem("Gaussian")
+        self.comboBoxDistribType.addItem("Uniform")
+        # self.comboBoxNetworkType.setCurrentIndex(-1)
+        self.comboBoxDistribType.activated[str].connect(self.updateDistrib)
+        layout.addWidget(self.comboBoxDistribType)
 
+        # white noise checkbox
+        self.checkbox_noise = QCheckBox('White noise to inputs', self)
+        self.checkbox_noise.stateChanged.connect(self.checkboxWhiteNoiseChanged)
+        layout.addWidget(self.checkbox_noise)
 
         # Create checkboxes
         self.checkbox1 = QCheckBox('Pearson Correlation', self)
@@ -103,6 +119,11 @@ class MyApp(QWidget):
         self.checkbox3 = QCheckBox('CCG', self)
         self.checkbox3.stateChanged.connect(self.checkboxStateChanged)
         layout.addWidget(self.checkbox3)
+
+        self.checkbox4 = QCheckBox('GLM', self)
+        self.checkbox4.stateChanged.connect(self.checkboxStateChanged)
+        layout.addWidget(self.checkbox4)
+
 
 
         # Plot
@@ -147,10 +168,21 @@ class MyApp(QWidget):
             self.methods_list.append('Transfer Entropy')
         if self.checkbox3.isChecked():
             self.methods_list.append('CCG')
+        if self.checkbox4.isChecked():
+            self.methods_list.append('GLM')
+
+    def checkboxWhiteNoiseChanged(self):
+        self.whitenoise = False
+        if self.checkbox_noise.isChecked():
+            self.whitenoise = True
 
     def updateWeightCoef(self, value):
         self.weightsCoef = value
         self.weightsSliderLabel.setText(f"weights=coeff/N: {self.weightsSlider.value():.2f}")
+
+
+    def updateDistrib(self, text):
+        self.distrib = text
 
 
 
@@ -159,24 +191,48 @@ class MyApp(QWidget):
                 self.lowerBound is not None) and (
                 self.prob is not None) and (
                 self.methods_list is not None) and (
-                self.weightsCoef is not None
+                self.weightsCoef is not None) and (
+                self.distrib is not None
         ):
             self.figure.clear()
             ax = self.figure.add_subplot(111)
             if self.networktype == "ER":
-                ER_network.start_network_simulation(ax, self.lowerBound, self.upperBound, self.prob,
-                                                    'iaf_psc_alpha',
-                                                    'Gaussian',
-                                                    self.methods_list, self.weightsCoef)
+                # ER_network.start_network_simulation(ax, self.prob,
+                #                                     'iaf_psc_alpha',
+                #                                     self.distrib,
+                #                                     self.methods_list, self.weightsCoef, self.whitenoise,
+                #                                     self.lowerBound, self.upperBound)
+
+                pass
             elif self.networktype == "WS":
-                WS_network.start_network_simulation(ax, self.lowerBound, self.upperBound, self.prob, 'iaf_psc_alpha', 'Gaussian')
+                pass
+                #WS_network.start_network_simulation(ax, self.lowerBound, self.upperBound, self.prob, 'iaf_psc_alpha', 'Gaussian')
 
             self.canvas.draw()
 
+
+
+
+
     def launch(self):
-        self.updatePlot()
+
+        self.figure.clear()
+        ax = self.figure.add_subplot(111)
+        df = new_main.create_table(ax, draw=False)
+        for method in ['Pearson Correlation', 'Transfer Entropy', 'CCG', 'GLM']:
+            ax.plot(df[df['method']==method]['size'], df[df['method']==method]['f1'], label=method)
+        ax.legend()
+        self.canvas.draw()
+        # self.updatePlot()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = MyApp()
     sys.exit(app.exec_())
+
+
+# 1 neuron
+# motifs
+# adjust parameters
+# data driven paper - why this mechanism

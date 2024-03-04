@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def cross_correlation(data1, data2, lag_limit=100):
+def cross_correlation(data1, data2, lag_limit=10):
     ts1 = np.asarray(data1)
     ts2 = np.asarray(data2)
     len_ts = min(len(ts1), len(ts2))
@@ -13,7 +13,10 @@ def cross_correlation(data1, data2, lag_limit=100):
     lags = range(-lag_limit, lag_limit + 1)
     for lag in lags:
         if lag < 0:
-            corr = np.correlate(ts1[:lag], ts2[-lag:])
+            try:
+                corr = np.correlate(ts1[:lag], ts2[-lag:])
+            except ValueError as e:
+                print(e)
         else:
             corr = np.correlate(ts1[lag:], ts2[:len_ts - lag])
         corr_values.append(corr / (np.std(ts1) * np.std(ts2) * (len_ts - abs(lag))))
